@@ -1,0 +1,34 @@
+name: Outbound Email Engine
+
+on:
+  repository_dispatch:
+    types: [send_email_event] # نفس الحدث القادم من الـ Worker
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Email via Node.js
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const nodemailer = require('nodemailer');
+            
+            // هنا نستخدم سيرفر الإرسال الافتراضي الحُر لـ GitHub Actions
+            let transporter = nodemailer.createTransport({
+              host: "smtp.github.com", // أو أي سيرفر SMTP مجاني تريده بدون قيود فحص كلودفلير
+              port: 587,
+              secure: false
+            });
+
+            let mailOptions = {
+              from: '"Mail Server" <admin@${{ github.event.client_payload.to }}>', 
+              to: "${{ github.event.client_payload.to }}",
+              subject: "${{ github.event.client_payload.subject }}",
+              html: `${{ github.event.client_payload.html }}`
+            };
+
+            transporter.sendMail(mailOptions, (error, info) => {
+              if (error) { console.log(error); } 
+              else { console.log('Email sent: ' + info.response); }
+            });
